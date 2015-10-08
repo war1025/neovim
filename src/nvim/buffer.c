@@ -2789,6 +2789,16 @@ void free_titles(void)
 
 # endif
 
+/**
+ * Enumeration specifying the valid numeric bases that can
+ * be used when printing numbers in the status line.
+ **/
+typedef enum {
+  kNumBaseDecimal = 10,
+  kNumBaseOctal = 8,
+  kNumBaseHexadecimal = 16
+} NumberBase;
+
 
 /*
  * Build a string from the status line items in "fmt".
@@ -2804,8 +2814,7 @@ void free_titles(void)
  * If maxwidth is not zero, the string will be filled at any middle marker
  * or truncated if too long, fillchar is used for all whitespace.
  */
-int
-build_stl_str_hl(
+int build_stl_str_hl(
     win_T *wp,
     char_u *out,               /* buffer to write into != NameBuff */
     size_t outlen,                  /* length of out[] */
@@ -2835,12 +2844,6 @@ build_stl_str_hl(
       Trunc
     }               type;
   }           item[STL_MAX_ITEM];
-
-  typedef enum {
-     DECIMAL     = 10,
-     OCTAL       = 8,
-     HEXIDECIMAL = 16
-  } number_base;
 
 #define TMPLEN 70
   char_u tmp[TMPLEN];
@@ -3188,7 +3191,7 @@ build_stl_str_hl(
     char_u opt = *fmt_p++;
 
     /* OK - now for the real work */
-    number_base base = DECIMAL;
+    NumberBase base = kNumBaseDecimal;
     bool itemisflag = false;
     bool fillable = true;
     long num = -1;
@@ -3345,7 +3348,7 @@ build_stl_str_hl(
       break;
 
     case STL_OFFSET_X:
-      base = HEXIDECIMAL;
+      base = kNumBaseHexadecimal;
     case STL_OFFSET:
     {
       long l = ml_find_line_or_offset(wp->w_buffer, wp->w_cursor.lnum, NULL);
@@ -3355,7 +3358,7 @@ build_stl_str_hl(
       break;
     }
     case STL_BYTEVAL_X:
-      base = HEXIDECIMAL;
+      base = kNumBaseHexadecimal;
     case STL_BYTEVAL:
       num = byteval;
       if (num == NL)
@@ -3559,7 +3562,9 @@ build_stl_str_hl(
 
       // Note: The `*` means we take the width as one of the arguments
       *t++ = '*';
-      *t++ = (char_u) (base == HEXIDECIMAL ? 'X' : (base == OCTAL ? 'o' : 'd'));
+      *t++ = (char_u) (base == kNumBaseHexadecimal ? 'X'
+                        : (base == kNumBaseOctal ? 'o'
+                        : 'd'));
       *t = 0;
       // }
 

@@ -2789,10 +2789,8 @@ void free_titles(void)
 
 # endif
 
-/**
- * Enumeration specifying the valid numeric bases that can
- * be used when printing numbers in the status line.
- **/
+/// Enumeration specifying the valid numeric bases that can
+/// be used when printing numbers in the status line.
 typedef enum {
   kNumBaseDecimal = 10,
   kNumBaseOctal = 8,
@@ -2800,30 +2798,41 @@ typedef enum {
 } NumberBase;
 
 
-/*
- * Build a string from the status line items in "fmt".
- * Return length of string in screen cells.
- *
- * Normally works for window "wp", except when working for 'tabline' then it
- * is "curwin".
- *
- * Items are drawn interspersed with the text that surrounds it
- * Specials: %-<wid>(xxx%) => group, %= => middle marker, %< => truncation
- * Item: %-<minwid>.<maxwid><itemch> All but <itemch> are optional
- *
- * If maxwidth is not zero, the string will be filled at any middle marker
- * or truncated if too long, fillchar is used for all whitespace.
- */
+/// Build a string from the status line items in "fmt".
+/// Return length of string in screen cells.
+///
+/// Normally works for window "wp", except when working for 'tabline' then it
+/// is "curwin".
+///
+/// Items are drawn interspersed with the text that surrounds it
+/// Specials: %-<wid>(xxx%) => group, %= => middle marker, %< => truncation
+/// Item: %-<minwid>.<maxwid><itemch> All but <itemch> are optional
+///
+/// If maxwidth is not zero, the string will be filled at any middle marker
+/// or truncated if too long, fillchar is used for all whitespace.
+///
+/// @param wp The window to build a statusline for
+/// @param out The output buffer to write the statusline to
+///            Note: This should not be NameBuff
+/// @param outlen The length of the output buffer
+/// @param fmt The statusline format string
+/// @param use_sandbox Use a sandboxed environment when evaluating fmt
+/// @param fillchar Character to use when filling empty space in the statusline
+/// @param maxwidth The maximum width to make the statusline
+/// @param hltab HL attributes (can be NULL)
+/// @param tabtab tab page nrs (can be NULL)
+///
+/// @return The final width of the statusline
 int build_stl_str_hl(
     win_T *wp,
-    char_u *out,               /* buffer to write into != NameBuff */
-    size_t outlen,                  /* length of out[] */
+    char_u *out,
+    size_t outlen,
     char_u *fmt,
-    int use_sandbox,             /* "fmt" was set insecurely, use sandbox */
+    int use_sandbox,
     int fillchar,
     int maxwidth,
-    struct stl_hlrec *hltab,        /* return: HL attributes (can be NULL) */
-    struct stl_hlrec *tabtab       /* return: tab page nrs (can be NULL) */
+    struct stl_hlrec *hltab,
+    struct stl_hlrec *tabtab
 )
 {
   int groupitem[STL_MAX_ITEM];
@@ -2849,10 +2858,8 @@ int build_stl_str_hl(
   char_u tmp[TMPLEN];
   char_u      *usefmt = fmt;
 
-  /*
-   * When the format starts with "%!" then evaluate it as an expression and
-   * use the result as the actual format string.
-   */
+  // When the format starts with "%!" then evaluate it as an expression and
+  // use the result as the actual format string.
   if (fmt[0] == '%' && fmt[1] == '!') {
     usefmt = eval_to_string_safe(fmt + 2, NULL, use_sandbox);
     if (usefmt == NULL)
@@ -2861,16 +2868,16 @@ int build_stl_str_hl(
 
   if (fillchar == 0)
     fillchar = ' ';
-  /* Can't handle a multi-byte fill character yet. */
+  // Can't handle a multi-byte fill character yet.
   else if (mb_char2len(fillchar) > 1)
     fillchar = '-';
 
-  /* Get line & check if empty (cursorpos will show "0-1"). */
+  // Get line & check if empty (cursorpos will show "0-1").
   char_u *line_ptr = ml_get_buf(wp->w_buffer, wp->w_cursor.lnum, false);
   bool empty_line = (*line_ptr == NUL);
 
-  /* Get the byte value now, in case we need it below. This is more
-   * efficient than making a copy of the line. */
+  // Get the byte value now, in case we need it below. This is more
+  // efficient than making a copy of the line.
   int byteval;
   if (wp->w_cursor.col > (colnr_T)STRLEN(line_ptr))
     byteval = 0;
@@ -2896,8 +2903,8 @@ int build_stl_str_hl(
   // fmt_p is the current positon in the input buffer
   for (char_u *fmt_p = usefmt; *fmt_p; ) {
     if (curitem == STL_MAX_ITEM) {
-      /* There are too many items.  Add the error code to the statusline
-       * to give the user a hint about what went wrong. */
+      // There are too many items.  Add the error code to the statusline
+      // to give the user a hint about what went wrong.
       if (out_p + 5 < out_end_p) {
         memmove(out_p, " E541", (size_t)5);
         out_p += 5;
@@ -3190,7 +3197,7 @@ int build_stl_str_hl(
     // The status line item type
     char_u opt = *fmt_p++;
 
-    /* OK - now for the real work */
+    // OK - now for the real work
     NumberBase base = kNumBaseDecimal;
     bool itemisflag = false;
     bool fillable = true;
@@ -3201,7 +3208,9 @@ int build_stl_str_hl(
     case STL_FULLPATH:
     case STL_FILENAME:
     {
-      fillable = false;         /* don't change ' ' to fillchar */
+      // Set fillable to false to that ' ' in the filename will not
+      // get replaced with the fillchar
+      fillable = false;
       if (buf_spname(wp->w_buffer) != NULL) {
         STRLCPY(NameBuff, buf_spname(wp->w_buffer), MAXPATHL);
       } else {
@@ -3288,7 +3297,7 @@ int build_stl_str_hl(
     case STL_VIRTCOL:
     case STL_VIRTCOL_ALT:
     {
-      /* In list mode virtcol needs to be recomputed */
+      // In list mode virtcol needs to be recomputed
       colnr_T virtcol = wp->w_virtcol;
       if (wp->w_p_list && lcs_tab1 == NUL) {
         wp->w_p_list = FALSE;
@@ -3296,7 +3305,7 @@ int build_stl_str_hl(
         wp->w_p_list = TRUE;
       }
       ++virtcol;
-      /* Don't display %V if it's the same as %c. */
+      // Don't display %V if it's the same as %c.
       if (opt == STL_VIRTCOL_ALT
           && (virtcol == (colnr_T)(!(State & INSERT) && empty_line
                                    ? 0 : (int)wp->w_cursor.col + 1)))
@@ -3513,7 +3522,7 @@ int build_stl_str_hl(
       // pad with fill characters.
       if (minwid > 0) {
         for (; l < minwid && out_p < out_end_p; l++) {
-          /* Don't put a "-" in front of a digit. */
+          // Don't put a "-" in front of a digit.
           if (l + 1 == minwid && fillchar == '-' && ascii_isdigit(*t))
             *out_p++ = ' ';
           else
@@ -3529,8 +3538,8 @@ int build_stl_str_hl(
       // { Copy the string text into the output buffer
       while (*t && out_p < out_end_p) {
         *out_p++ = *t++;
-        /* Change a space by fillchar, unless fillchar is '-' and a
-         * digit follows. */
+        // Change a space by fillchar, unless fillchar is '-' and a
+        // digit follows.
         if (fillable && out_p[-1] == ' '
             && (!ascii_isdigit(*t) || fillchar != '-'))
           out_p[-1] = fillchar;
@@ -3650,7 +3659,7 @@ int build_stl_str_hl(
 
   int width = vim_strsize(out);
   if (maxwidth > 0 && width > maxwidth) {
-    /* Result is too long, must truncate somewhere. */
+    // Result is too long, must truncate somewhere.
     int item_idx = 0;
     char_u *trunc_p;
 
@@ -3690,7 +3699,7 @@ int build_stl_str_hl(
           //       character will fit in the available output space
           trunc_p += (*mb_ptr2len)(trunc_p);
         }
-        /* Fill up for half a double-wide character. */
+        // Fill up for half a double-wide character.
         // XXX : This seems impossible given the exit condition above?
         while (++width < maxwidth) {
           *trunc_p++ = fillchar;
@@ -3741,7 +3750,7 @@ int build_stl_str_hl(
       // Advance the pointer to the end of the string
       trunc_p = trunc_p + STRLEN(trunc_p);
 
-      /* Fill up for half a double-wide character. */
+      // Fill up for half a double-wide character.
       while (++width < maxwidth) {
         *trunc_p++ = fillchar;
         *trunc_p = NUL;
@@ -3795,7 +3804,7 @@ int build_stl_str_hl(
     }
   }
 
-  /* Store the info about highlighting. */
+  // Store the info about highlighting.
   if (hltab != NULL) {
     struct stl_hlrec *sp = hltab;
     for (long l = 0; l < itemcnt; l++) {
@@ -3809,7 +3818,7 @@ int build_stl_str_hl(
     sp->userhl = 0;
   }
 
-  /* Store the info about tab pages labels. */
+  // Store the info about tab pages labels.
   if (tabtab != NULL) {
     struct stl_hlrec *sp = tabtab;
     for (long l = 0; l < itemcnt; l++) {

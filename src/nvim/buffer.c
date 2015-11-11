@@ -3247,19 +3247,11 @@ int build_stl_str_hl(
       vim_snprintf((char *)tmp, sizeof(tmp), "%d", curbuf->b_fnum);
       set_internal_string_var((char_u *)"actual_curbuf", tmp);
 
-      // Switch the curbuf and curwin to the buffer and window we are
-      // evaluating the statusline for.
-      buf_T *o_curbuf = curbuf;
-      win_T *o_curwin = curwin;
-      curwin = wp;
-      curbuf = wp->w_buffer;
-
-      // Note: The result stored in `t` is unused.
-      str = eval_to_string_safe(out_p, &t, use_sandbox);
-
-      // Switch back to the actual current buffer and window.
-      curwin = o_curwin;
-      curbuf = o_curbuf;
+      // Evaluate the expression using the correct window
+      WITH_WINDOW(wp, {
+        // Note: The result stored in `t` is unused.
+        str = eval_to_string_safe(out_p, &t, use_sandbox);
+      });
 
       // Remove the variable we just stored
       do_unlet((char_u *)"g:actual_curbuf", true);

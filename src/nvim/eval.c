@@ -10437,8 +10437,7 @@ static void f_getregtype(typval_T *argvars, typval_T *rettv)
  */
 static void f_gettabvar(typval_T *argvars, typval_T *rettv)
 {
-  win_T *oldcurwin;
-  tabpage_T *tp, *oldtabpage;
+  tabpage_T *tp;
   dictitem_T  *v;
   char_u      *varname;
   bool done = false;
@@ -10449,9 +10448,7 @@ static void f_gettabvar(typval_T *argvars, typval_T *rettv)
   varname = get_tv_string_chk(&argvars[1]);
   tp = find_tabpage((int)get_tv_number_chk(&argvars[0], NULL));
   if (tp != NULL && varname != NULL) {
-    /* Set tp to be our tabpage, temporarily.  Also set the window to the
-     * first window in the tabpage, otherwise the window is not valid. */
-    if (switch_win(&oldcurwin, &oldtabpage, tp->tp_firstwin, tp, TRUE) == OK) {
+    WITH_WINDOW_IN_TAB(tp->tp_firstwin, tp, {
       // look up the variable
       // Let gettabvar({nr}, "") return the "t:" dictionary.
       v = find_var_in_ht(&tp->tp_vars->dv_hashtab, 't', varname, FALSE);
@@ -10459,10 +10456,7 @@ static void f_gettabvar(typval_T *argvars, typval_T *rettv)
         copy_tv(&v->di_tv, rettv);
         done = true;
       }
-    }
-
-    /* restore previous notion of curwin */
-    restore_win(oldcurwin, oldtabpage, TRUE);
+    });
   }
 
   if (!done && argvars[2].v_type != VAR_UNKNOWN) {
@@ -10544,11 +10538,10 @@ getwinvar (
     int off                    /* 1 for gettabwinvar() */
 )
 {
-  win_T       *win, *oldcurwin;
+  win_T       *win;
   char_u      *varname;
   dictitem_T  *v;
   tabpage_T   *tp = NULL;
-  tabpage_T   *oldtabpage = NULL;
   bool done = false;
 
   if (off == 1)
@@ -10563,12 +10556,11 @@ getwinvar (
   rettv->vval.v_string = NULL;
 
   if (win != NULL && varname != NULL) {
-    /* Set curwin to be our win, temporarily.  Also set the tabpage,
-     * otherwise the window is not valid. */
-    if (switch_win(&oldcurwin, &oldtabpage, win, tp, TRUE) == OK) {
+    WITH_WINDOW_IN_TAB(win, tp, {
       if (*varname == '&') {      /* window-local-option */
-        if (get_option_tv(&varname, rettv, 1) == OK)
+        if (get_option_tv(&varname, rettv, 1) == OK) {
           done = true;
+        }
       } else {
         // Look up the variable.
         // Let getwinvar({nr}, "") return the "w:" dictionary.
@@ -10578,10 +10570,7 @@ getwinvar (
           done = true;
         }
       }
-    }
-
-    /* restore previous notion of curwin */
-    restore_win(oldcurwin, oldtabpage, TRUE);
+    });
   }
 
   if (!done && argvars[off + 2].v_type != VAR_UNKNOWN)
@@ -15202,8 +15191,6 @@ static void f_setwinvar(typval_T *argvars, typval_T *rettv)
 static void setwinvar(typval_T *argvars, typval_T *rettv, int off)
 {
   win_T       *win;
-  win_T       *save_curwin;
-  tabpage_T   *save_curtab;
   char_u      *varname, *winvarname;
   typval_T    *varp;
   char_u nbuf[NUMBUFLEN];
@@ -15220,26 +15207,26 @@ static void setwinvar(typval_T *argvars, typval_T *rettv, int off)
   varname = get_tv_string_chk(&argvars[off + 1]);
   varp = &argvars[off + 2];
 
-  if (win != NULL && varname != NULL && varp != NULL
-      && switch_win(&save_curwin, &save_curtab, win, tp, TRUE) == OK) {
-    if (*varname == '&') {
-      long numval;
-      char_u      *strval;
-      int error = FALSE;
+  if (win != NULL && varname != NULL && varp != NULL) {
+    WITH_WINDOW_IN_TAB(win, tp, {
+      if (*varname == '&') {
+        long numval;
+        char_u      *strval;
+        int error = FALSE;
 
-      ++varname;
-      numval = get_tv_number_chk(varp, &error);
-      strval = get_tv_string_buf_chk(varp, nbuf);
-      if (!error && strval != NULL)
-        set_option_value(varname, numval, strval, OPT_LOCAL);
-    } else {
-      winvarname = xmalloc(STRLEN(varname) + 3);
-      STRCPY(winvarname, "w:");
-      STRCPY(winvarname + 2, varname);
-      set_var(winvarname, varp, TRUE);
-      xfree(winvarname);
-    }
-    restore_win(save_curwin, save_curtab, TRUE);
+        ++varname;
+        numval = get_tv_number_chk(varp, &error);
+        strval = get_tv_string_buf_chk(varp, nbuf);
+        if (!error && strval != NULL)
+          set_option_value(varname, numval, strval, OPT_LOCAL);
+      } else {
+        winvarname = xmalloc(STRLEN(varname) + 3);
+        STRCPY(winvarname, "w:");
+        STRCPY(winvarname + 2, varname);
+        set_var(winvarname, varp, TRUE);
+        xfree(winvarname);
+      }
+    });
   }
 }
 

@@ -32,4 +32,37 @@
 #ifdef INCLUDE_GENERATED_DECLARATIONS
 # include "window.h.generated.h"
 #endif
+
+/// Evaluate the given `code` block in the scope of the given window `w`.
+/// Note: All autocommands will be blocked during the execution of `code`
+//        and the display will not be updated.
+/// Note: The code is only evaluated if the window is valid.
+///       If you are unsure whether the window will be valid, you can
+///       set a flag inside the `code` block to verify execution.
+#define WITH_WINDOW(w, code)                                              \
+  do {                                                                    \
+    win_T *save_curwin = NULL;                                            \
+    if (switch_win(&save_curwin, NULL, w, NULL, true) == OK) {            \
+       code;                                                              \
+    }                                                                     \
+    restore_win(save_curwin, NULL, true);                                 \
+  } while (0)
+
+/// Evaluate the given `code` block in the scope of the given window `w`
+/// and tabpage `t`.
+/// Note: All autocommands will be blocked during the execution of `code`
+//        and the display will not be updated.
+/// Note: The code is only evaluated if the window is valid.
+///       If you are unsure whether the window will be valid, you can
+///       set a flag inside the `code` block to verify execution.
+#define WITH_WINDOW_IN_TAB(w, t, code)                                    \
+  do {                                                                    \
+    win_T *save_curwin = NULL;                                            \
+    tabpage_T *save_curtab = NULL;                                        \
+    if (switch_win(&save_curwin, &save_curtab, w, t, true) == OK) {       \
+       code;                                                              \
+    }                                                                     \
+    restore_win(save_curwin, save_curtab, true);                          \
+  } while (0)
+
 #endif  // NVIM_WINDOW_H

@@ -323,10 +323,9 @@ void update_topline(void)
  */
 void update_topline_win(win_T* win)
 {
-  win_T *save_curwin;
-  switch_win(&save_curwin, NULL, win, NULL, true);
-  update_topline();
-  restore_win(save_curwin, NULL, true);
+  WITH_WINDOW(win, {
+    update_topline();
+  });
 }
 
 /*

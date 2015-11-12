@@ -4875,9 +4875,8 @@ wipe_buffer (
   if (buf->b_fnum == top_file_num - 1)
     --top_file_num;
 
-  if (!aucmd)               /* Don't trigger BufDelete autocommands here. */
-    block_autocmds();
-  close_buffer(NULL, buf, DOBUF_WIPE, FALSE);
-  if (!aucmd)
-    unblock_autocmds();
+  // Don't trigger BufDelete autocommands here.
+  WITH_MAYBE_BLOCK_AUTOCMDS(!aucmd, {
+    close_buffer(NULL, buf, DOBUF_WIPE, FALSE);
+  });
 }
